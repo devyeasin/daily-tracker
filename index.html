@@ -105,7 +105,7 @@
     <div class="card">
       <h3>Today's log</h3>
       <div class="row">
-        <div class="field"><label>Study hours</label><input type="number" id="d_study" step="0.5" min="0"></div>
+        <div class="field"><label>Coading Study hours</label><input type="number" id="d_study" step="0.5" min="0"></div>
         <div class="field"><label>Gov-job study (hrs)</label><input type="number" id="d_gov" step="0.5" min="0"></div>
         <div class="field"><label>GitHub commits</label><input type="number" id="d_commits" min="0"></div>
       </div>
@@ -378,7 +378,7 @@ function renderWeekly() {
   const proposals = sumField(days,'proposals'), target_proposals = 15;
   const commits = sumField(days,'commits');
   const bars = [
-    ['Study hours', study, target_study, 'h'],
+    ['Coading Study hours', study, target_study, 'h'],
     ['Cold emails', emails, target_emails, ''],
     ['Fiverr/Upwork proposals', proposals, target_proposals, '']
   ];
