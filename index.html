@@ -111,7 +111,7 @@
       </div>
       <div class="row">
         <div class="field"><label>Cold emails sent</label><input type="number" id="d_emails" min="0"></div>
-        <div class="field"><label>Upwork proposals</label><input type="number" id="d_proposals" min="0"></div>
+        <div class="field"><label>Fiverr/Upwork proposals</label><input type="number" id="d_proposals" min="0"></div>
         <div class="field"><label>English practice (min)</label><input type="number" id="d_english" min="0"></div>
       </div>
       <div class="row">
@@ -380,7 +380,7 @@ function renderWeekly() {
   const bars = [
     ['Study hours', study, target_study, 'h'],
     ['Cold emails', emails, target_emails, ''],
-    ['Upwork proposals', proposals, target_proposals, '']
+    ['Fiverr/Upwork proposals', proposals, target_proposals, '']
   ];
   let html = '';
   bars.forEach(([label,val,target,unit]) => {
