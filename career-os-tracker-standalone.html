@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Career OS Tracker</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #FAFAF7;
+    color: #1C1C1E;
+  }
+  #app { max-width: 780px; margin: 0 auto; padding: 24px 20px 60px; }
+  .brand { display:flex; justify-content:space-between; align-items:center; margin-bottom: 18px; }
+  .brand h1 { font-size: 15px; font-weight: 700; margin:0; letter-spacing:0.2px; }
+  .brand h1 span { color:#0F766E; }
+  .brand .date { font-size: 11.5px; color:#8A9490; }
+  .tabs { display:flex; gap:6px; margin-bottom:18px; border-bottom:1px solid #E4E4DF; flex-wrap:wrap; }
+  .tab {
+    padding:8px 12px; font-size:12.5px; font-weight:600; color:#6B7570;
+    cursor:pointer; border-bottom:2px solid transparent; user-select:none;
+  }
+  .tab.active { color:#0F766E; border-bottom-color:#0F766E; }
+  .view { display:none; }
+  .view.active { display:block; }
+  .card {
+    background:#fff; border:1px solid #E7E7E1; border-radius:12px;
+    padding:16px 18px; margin-bottom:14px;
+  }
+  .card h3 { font-size:13px; font-weight:700; margin:0 0 12px; color:#14201C; }
+  .row { display:flex; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
+  .field { flex:1; min-width:120px; }
+  .field label { display:block; font-size:11px; color:#6B7570; margin-bottom:4px; }
+  .field input[type=number], .field input[type=text] {
+    width:100%; padding:7px 9px; border:1px solid #D8D8D2; border-radius:7px;
+    font-size:13px; background:#FCFCFA;
+  }
+  .field input:focus { outline:none; border-color:#0F766E; }
+  .checkrow { display:flex; align-items:center; gap:8px; margin-bottom:8px; font-size:12.5px; }
+  .checkrow input { width:16px; height:16px; accent-color:#0F766E; }
+  button.primary {
+    background:#14201C; color:#fff; border:none; border-radius:8px;
+    padding:9px 16px; font-size:12.5px; font-weight:600; cursor:pointer;
+  }
+  button.primary:hover { background:#0F766E; }
+  button.primary:disabled { opacity:0.5; cursor:default; }
+  .kpi-grid { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
+  .kpi { flex:1; min-width:130px; background:#14201C; color:#fff; border-radius:10px; padding:12px 14px; }
+  .kpi .num { font-size:18px; font-weight:700; }
+  .kpi .lab { font-size:10px; color:#B7C4C0; text-transform:uppercase; letter-spacing:0.5px; margin-top:3px; }
+  .progress-row { display:flex; align-items:center; gap:8px; margin-bottom:9px; }
+  .progress-label { width:130px; font-size:11.5px; color:#333; flex-shrink:0; }
+  .progress-track { flex:1; height:8px; background:#ECECE6; border-radius:5px; overflow:hidden; }
+  .progress-fill { height:100%; background:linear-gradient(90deg,#0F766E,#14B8A6); }
+  .progress-pct { width:38px; text-align:right; font-size:11px; color:#666; flex-shrink:0; }
+  table.log { width:100%; border-collapse:collapse; font-size:11.5px; }
+  table.log th { text-align:left; font-size:10px; text-transform:uppercase; color:#8A9490; padding:6px 6px; border-bottom:1px solid #E4E4DF; }
+  table.log td { padding:6px 6px; border-bottom:1px solid #F0F0EB; }
+  .habit-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(150px,1fr)); gap:14px; }
+  .habit-col h4 { font-size:11.5px; margin:0 0 8px; color:#14201C; }
+  .habit-boxes { display:flex; flex-wrap:wrap; gap:3px; }
+  .hb { width:14px; height:14px; border-radius:3px; background:#ECECE6; }
+  .hb.on { background:#0F766E; }
+  .small { font-size:11px; color:#6B7570; }
+  .saved-msg { font-size:11.5px; color:#0F766E; margin-left:10px; opacity:0; transition:opacity 0.3s; }
+  .saved-msg.show { opacity:1; }
+  .empty { font-size:12px; color:#8A9490; padding:14px 0; text-align:center; }
+  select { padding:7px 9px; border:1px solid #D8D8D2; border-radius:7px; font-size:13px; background:#FCFCFA; }
+  .setup-banner {
+    background:#FDF6E7; border:1px solid #EFDDAF; border-radius:10px;
+    padding:14px 16px; margin-bottom:18px; font-size:12.5px; color:#6B4F0A;
+  }
+  .setup-banner code { background:#fff; padding:1px 5px; border-radius:4px; }
+  .sync-dot { width:7px; height:7px; border-radius:50%; display:inline-block; margin-right:5px; }
+  .sync-dot.ok { background:#0F766E; }
+  .sync-dot.err { background:#D85A30; }
+  .sync-dot.wait { background:#B8860B; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="brand">
+    <h1>CAREER <span>OS</span> &middot; Tracker</h1>
+    <div class="date" id="statusLabel"></div>
+  </div>
+
+  <div id="setupBanner" style="display:none;" class="setup-banner">
+    Not connected yet. Open this file, find the <code>SUPABASE_URL</code> and <code>SUPABASE_KEY</code>
+    lines near the bottom, and paste in your project's values from Supabase &rarr; Project Settings &rarr; API.
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-view="daily">Daily</div>
+    <div class="tab" data-view="weekly">Weekly</div>
+    <div class="tab" data-view="monthly">Monthly</div>
+    <div class="tab" data-view="habits">Habits</div>
+    <div class="tab" data-view="dashboard">Dashboard</div>
+  </div>
+
+  <!-- DAILY -->
+  <div class="view active" id="view-daily">
+    <div class="card">
+      <h3>Today's log</h3>
+      <div class="row">
+        <div class="field"><label>Study hours</label><input type="number" id="d_study" step="0.5" min="0"></div>
+        <div class="field"><label>Gov-job study (hrs)</label><input type="number" id="d_gov" step="0.5" min="0"></div>
+        <div class="field"><label>GitHub commits</label><input type="number" id="d_commits" min="0"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>Cold emails sent</label><input type="number" id="d_emails" min="0"></div>
+        <div class="field"><label>Upwork proposals</label><input type="number" id="d_proposals" min="0"></div>
+        <div class="field"><label>English practice (min)</label><input type="number" id="d_english" min="0"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>Exercise (min)</label><input type="number" id="d_exercise" min="0"></div>
+        <div class="field"><label>Prayers (of 5)</label><input type="number" id="d_prayers" min="0" max="5"></div>
+        <div class="field"><label>Income today (BDT)</label><input type="number" id="d_income" min="0"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>Expenses today (BDT)</label><input type="number" id="d_expenses" min="0"></div>
+        <div class="field"></div>
+        <div class="field"></div>
+      </div>
+      <div class="checkrow"><input type="checkbox" id="d_fiverr"> <label for="d_fiverr">Fiverr/portfolio touch done</label></div>
+      <div class="checkrow"><input type="checkbox" id="d_linkedin"> <label for="d_linkedin">LinkedIn post/engagement done</label></div>
+      <div class="checkrow"><input type="checkbox" id="d_marketing"> <label for="d_marketing">Full marketing block done</label></div>
+      <div style="margin-top:8px; display:flex; align-items:center;">
+        <button class="primary" id="saveBtn" onclick="saveDaily()">Save today's log</button>
+        <span class="saved-msg" id="savedMsg">Synced</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Recent days</h3>
+      <div id="recentLog"><div class="empty">No entries yet — save your first log above.</div></div>
+    </div>
+  </div>
+
+  <!-- WEEKLY -->
+  <div class="view" id="view-weekly">
+    <div class="card">
+      <h3>This week (last 7 days) vs. target</h3>
+      <div id="weeklyBars"></div>
+    </div>
+    <div class="card">
+      <h3>Weekly totals</h3>
+      <div id="weeklyTotals" class="small"></div>
+    </div>
+  </div>
+
+  <!-- MONTHLY -->
+  <div class="view" id="view-monthly">
+    <div class="card">
+      <h3>This month (last 30 days)</h3>
+      <div id="monthlyStats"></div>
+    </div>
+    <div class="card">
+      <h3>Income vs. expenses</h3>
+      <div id="moneyStats" class="small"></div>
+    </div>
+  </div>
+
+  <!-- HABITS -->
+  <div class="view" id="view-habits">
+    <div class="card">
+      <h3>30-day habit grid <span class="small">(auto-filled from your daily logs)</span></h3>
+      <div class="habit-grid" id="habitGrid"></div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="view" id="view-dashboard">
+    <div class="card">
+      <h3>Career state <span class="small">(edit anytime)</span></h3>
+      <div class="row">
+        <div class="field"><label>Current level (1&ndash;5)</label><input type="text" id="cfg_level"></div>
+        <div class="field"><label>Current quarter</label>
+          <select id="cfg_quarter">
+            <option>Q1</option><option>Q2</option><option>Q3</option><option>Q4</option>
+          </select>
+        </div>
+        <div class="field"><label>Current focus skill</label><input type="text" id="cfg_skill"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>Current project</label><input type="text" id="cfg_project"></div>
+        <div class="field"><label>Weekly goal</label><input type="text" id="cfg_weekly"></div>
+        <div class="field"><label>Monthly goal</label><input type="text" id="cfg_monthly"></div>
+      </div>
+      <button class="primary" onclick="saveConfig()">Save</button>
+      <span class="saved-msg" id="savedMsgCfg">Synced</span>
+    </div>
+
+    <div class="card">
+      <h3>Progress</h3>
+      <div class="kpi-grid" id="kpiGrid"></div>
+      <div id="dashProgress"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* =======================================================
+   CONNECT YOUR DATABASE — replace these two lines
+   Find them in Supabase: Project Settings -> API
+   ======================================================= */
+const SUPABASE_URL = 'https://frehsfpmrlfczmwprmud.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_cE6mGG-E7ahRgAYd9uF0MA_hYkVDi8e';
+/* ======================================================= */
+
+const isConfigured = !SUPABASE_URL.includes('YOUR-PROJECT') && !SUPABASE_KEY.includes('YOUR-ANON');
+
+const todayStr = () => {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+};
+document.getElementById('statusLabel').textContent = new Date().toLocaleDateString('en-US', { weekday:'long', month:'short', day:'numeric' });
+
+let entries = {};
+let config = { level:'', quarter:'Q1', skill:'', project:'', weekly:'', monthly:'' };
+
+function headers() {
+  return {
+    apikey: SUPABASE_KEY,
+    Authorization: 'Bearer ' + SUPABASE_KEY,
+    'Content-Type': 'application/json'
+  };
+}
+
+async function dbLoad(id) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/tracker_data?id=eq.${id}&select=payload`, { headers: headers() });
+  if (!res.ok) throw new Error('load failed');
+  const rows = await res.json();
+  return rows[0] ? rows[0].payload : null;
+}
+
+async function dbSave(id, payload) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/tracker_data`, {
+    method: 'POST',
+    headers: { ...headers(), Prefer: 'resolution=merge-duplicates' },
+    body: JSON.stringify({ id, payload, updated_at: new Date().toISOString() })
+  });
+  if (!res.ok) throw new Error('save failed');
+}
+
+async function loadAll() {
+  if (!isConfigured) {
+    document.getElementById('setupBanner').style.display = 'block';
+    document.getElementById('saveBtn').disabled = true;
+    populateTodayForm(); populateConfigForm();
+    renderRecent(); renderWeekly(); renderMonthly(); renderHabits(); renderDashboard();
+    return;
+  }
+  try {
+    entries = (await dbLoad('entries')) || {};
+    config = (await dbLoad('config')) || config;
+  } catch (e) {
+    console.error(e);
+    document.getElementById('setupBanner').style.display = 'block';
+    document.getElementById('setupBanner').textContent = 'Could not reach the database. Check your Supabase URL/key and that the table exists.';
+  }
+  populateTodayForm();
+  populateConfigForm();
+  renderRecent();
+  renderWeekly();
+  renderMonthly();
+  renderHabits();
+  renderDashboard();
+}
+
+function populateTodayForm() {
+  const t = entries[todayStr()] || {};
+  document.getElementById('d_study').value = t.study || '';
+  document.getElementById('d_gov').value = t.gov || '';
+  document.getElementById('d_commits').value = t.commits || '';
+  document.getElementById('d_emails').value = t.emails || '';
+  document.getElementById('d_proposals').value = t.proposals || '';
+  document.getElementById('d_english').value = t.english || '';
+  document.getElementById('d_exercise').value = t.exercise || '';
+  document.getElementById('d_prayers').value = t.prayers || '';
+  document.getElementById('d_income').value = t.income || '';
+  document.getElementById('d_expenses').value = t.expenses || '';
+  document.getElementById('d_fiverr').checked = !!t.fiverr;
+  document.getElementById('d_linkedin').checked = !!t.linkedin;
+  document.getElementById('d_marketing').checked = !!t.marketing;
+}
+
+function populateConfigForm() {
+  document.getElementById('cfg_level').value = config.level || '';
+  document.getElementById('cfg_quarter').value = config.quarter || 'Q1';
+  document.getElementById('cfg_skill').value = config.skill || '';
+  document.getElementById('cfg_project').value = config.project || '';
+  document.getElementById('cfg_weekly').value = config.weekly || '';
+  document.getElementById('cfg_monthly').value = config.monthly || '';
+}
+
+async function saveDaily() {
+  const t = {
+    study: parseFloat(document.getElementById('d_study').value) || 0,
+    gov: parseFloat(document.getElementById('d_gov').value) || 0,
+    commits: parseInt(document.getElementById('d_commits').value) || 0,
+    emails: parseInt(document.getElementById('d_emails').value) || 0,
+    proposals: parseInt(document.getElementById('d_proposals').value) || 0,
+    english: parseInt(document.getElementById('d_english').value) || 0,
+    exercise: parseInt(document.getElementById('d_exercise').value) || 0,
+    prayers: parseInt(document.getElementById('d_prayers').value) || 0,
+    income: parseFloat(document.getElementById('d_income').value) || 0,
+    expenses: parseFloat(document.getElementById('d_expenses').value) || 0,
+    fiverr: document.getElementById('d_fiverr').checked,
+    linkedin: document.getElementById('d_linkedin').checked,
+    marketing: document.getElementById('d_marketing').checked
+  };
+  entries[todayStr()] = t;
+  try {
+    await dbSave('entries', entries);
+    const msg = document.getElementById('savedMsg');
+    msg.classList.add('show');
+    setTimeout(()=>msg.classList.remove('show'), 1500);
+  } catch(e) { alert('Could not sync — check your internet connection and Supabase setup.'); }
+  renderRecent(); renderWeekly(); renderMonthly(); renderHabits(); renderDashboard();
+}
+
+async function saveConfig() {
+  config = {
+    level: document.getElementById('cfg_level').value,
+    quarter: document.getElementById('cfg_quarter').value,
+    skill: document.getElementById('cfg_skill').value,
+    project: document.getElementById('cfg_project').value,
+    weekly: document.getElementById('cfg_weekly').value,
+    monthly: document.getElementById('cfg_monthly').value
+  };
+  try {
+    await dbSave('config', config);
+    const msg = document.getElementById('savedMsgCfg');
+    msg.classList.add('show');
+    setTimeout(()=>msg.classList.remove('show'), 1500);
+  } catch(e) { alert('Could not sync — check your internet connection and Supabase setup.'); }
+  renderDashboard();
+}
+
+function lastNDays(n) {
+  const days = [];
+  const d = new Date();
+  for (let i=0;i<n;i++) {
+    const dd = new Date(d);
+    dd.setDate(d.getDate()-i);
+    const key = dd.getFullYear() + '-' + String(dd.getMonth()+1).padStart(2,'0') + '-' + String(dd.getDate()).padStart(2,'0');
+    days.push(key);
+  }
+  return days.reverse();
+}
+
+function sumField(days, field) {
+  return days.reduce((s,k)=> s + ((entries[k] && entries[k][field]) || 0), 0);
+}
+
+function renderRecent() {
+  const days = lastNDays(7).reverse();
+  const withData = days.filter(k => entries[k]);
+  const el = document.getElementById('recentLog');
+  if (withData.length === 0) { el.innerHTML = '<div class="empty">No entries yet — save your first log above.</div>'; return; }
+  let html = '<table class="log"><tr><th>Date</th><th>Study</th><th>Gov</th><th>Emails</th><th>Proposals</th><th>Income</th></tr>';
+  withData.forEach(k => {
+    const t = entries[k];
+    html += `<tr><td>${k.slice(5)}</td><td>${t.study||0}h</td><td>${t.gov||0}h</td><td>${t.emails||0}</td><td>${t.proposals||0}</td><td>${t.income||0}</td></tr>`;
+  });
+  html += '</table>';
+  el.innerHTML = html;
+}
+
+function renderWeekly() {
+  const days = lastNDays(7);
+  const study = sumField(days,'study'), target_study = 28;
+  const emails = sumField(days,'emails'), target_emails = 25;
+  const proposals = sumField(days,'proposals'), target_proposals = 15;
+  const commits = sumField(days,'commits');
+  const bars = [
+    ['Study hours', study, target_study, 'h'],
+    ['Cold emails', emails, target_emails, ''],
+    ['Upwork proposals', proposals, target_proposals, '']
+  ];
+  let html = '';
+  bars.forEach(([label,val,target,unit]) => {
+    const pct = Math.min(100, Math.round((val/target)*100));
+    html += `<div class="progress-row"><div class="progress-label">${label}</div><div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div><div class="progress-pct">${val}${unit}/${target}${unit}</div></div>`;
+  });
+  document.getElementById('weeklyBars').innerHTML = html;
+  document.getElementById('weeklyTotals').innerHTML = `
+    GitHub commits: <b>${commits}</b> &middot;
+    Gov-job study: <b>${sumField(days,'gov')}h</b> &middot;
+    Exercise: <b>${sumField(days,'exercise')} min</b> &middot;
+    Marketing blocks done: <b>${days.filter(k=>entries[k]&&entries[k].marketing).length}/7</b>
+  `;
+}
+
+function renderMonthly() {
+  const days = lastNDays(30);
+  const study = sumField(days,'study');
+  const commits = sumField(days,'commits');
+  const income = sumField(days,'income');
+  const expenses = sumField(days,'expenses');
+  document.getElementById('monthlyStats').innerHTML = `
+    <div class="kpi-grid">
+      <div class="kpi"><div class="num">${study}h</div><div class="lab">Study hours</div></div>
+      <div class="kpi"><div class="num">${commits}</div><div class="lab">GitHub commits</div></div>
+      <div class="kpi"><div class="num">${sumField(days,'emails')}</div><div class="lab">Cold emails</div></div>
+      <div class="kpi"><div class="num">${sumField(days,'proposals')}</div><div class="lab">Proposals</div></div>
+    </div>`;
+  document.getElementById('moneyStats').innerHTML = `
+    Income (30d): <b>${income.toLocaleString()} BDT</b> &middot;
+    Expenses (30d): <b>${expenses.toLocaleString()} BDT</b> &middot;
+    Net: <b>${(income-expenses).toLocaleString()} BDT</b>
+  `;
+}
+
+function renderHabits() {
+  const days = lastNDays(30);
+  const cols = [
+    ['Study block', k => entries[k] && entries[k].study > 0],
+    ['Marketing block', k => entries[k] && entries[k].marketing],
+    ['Exercise', k => entries[k] && entries[k].exercise > 0],
+    ['5 prayers', k => entries[k] && entries[k].prayers >= 5]
+  ];
+  let html = '';
+  cols.forEach(([label, test]) => {
+    html += `<div class="habit-col"><h4>${label}</h4><div class="habit-boxes">`;
+    days.forEach(k => {
+      html += `<div class="hb ${test(k) ? 'on' : ''}"></div>`;
+    });
+    html += '</div></div>';
+  });
+  document.getElementById('habitGrid').innerHTML = html;
+}
+
+function renderDashboard() {
+  const days30 = lastNDays(30);
+  const days7 = lastNDays(7);
+  const studyMonth = sumField(days30,'study');
+  const incomeMonth = sumField(days30,'income');
+  document.getElementById('kpiGrid').innerHTML = `
+    <div class="kpi"><div class="num">${config.level||'&ndash;'}</div><div class="lab">Current level</div></div>
+    <div class="kpi"><div class="num">${config.quarter||'&ndash;'}</div><div class="lab">Current quarter</div></div>
+    <div class="kpi"><div class="num" style="font-size:13px;">${config.skill||'&ndash;'}</div><div class="lab">Focus skill</div></div>
+    <div class="kpi"><div class="num" style="font-size:13px;">${config.project||'&ndash;'}</div><div class="lab">Current project</div></div>
+  `;
+  const weeklyPct = Math.min(100, Math.round((sumField(days7,'study')/28)*100));
+  document.getElementById('dashProgress').innerHTML = `
+    <div class="progress-row"><div class="progress-label">Learning (7d)</div><div class="progress-track"><div class="progress-fill" style="width:${weeklyPct}%"></div></div><div class="progress-pct">${weeklyPct}%</div></div>
+    <div class="small" style="margin-top:10px;">
+      Weekly goal: <b>${config.weekly || 'not set'}</b><br>
+      Monthly goal: <b>${config.monthly || 'not set'}</b><br>
+      Study hours this month: <b>${studyMonth}h</b> &middot; Income this month: <b>${incomeMonth.toLocaleString()} BDT</b>
+    </div>
+  `;
+}
+
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('view-'+tab.dataset.view).classList.add('active');
+  });
+});
+
+loadAll();
+</script>
+</body>
+</html>
